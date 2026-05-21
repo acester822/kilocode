@@ -15,6 +15,12 @@ export interface AutocompleteModelDef {
   readonly provider: string
   /** FIM request temperature */
   readonly temperature: number
+  /**
+   * When true, completions are fetched directly from a local OpenAI-compatible
+   * endpoint (kilo-code.new.autocomplete.localBaseUrl) instead of routing
+   * through the Kilo gateway.
+   */
+  readonly local?: boolean
 }
 
 const models: AutocompleteModelDef[] = [
@@ -29,6 +35,13 @@ const models: AutocompleteModelDef[] = [
     label: "Mercury Edit (Inception)",
     provider: "Inception",
     temperature: 0,
+  },
+  {
+    id: "local/qwen2.5-coder-1.5b",
+    label: "Qwen2.5-Coder-1.5B (Local / llama-swap)",
+    provider: "Local",
+    temperature: 0.2,
+    local: true,
   },
 ]
 

@@ -6,7 +6,7 @@ import { postprocessAutocompleteSuggestion } from "../classic-auto-complete/usel
 import { VisibleCodeTracker } from "../context/VisibleCodeTracker"
 import { FileIgnoreController } from "../shims/FileIgnoreController"
 import type { KiloConnectionService } from "../../cli-backend"
-import { generateFim, hasValidCredentials } from "../fim"
+import { generateFim, generateLocalFim, hasValidCredentials } from "../fim"
 import { getAutocompleteModel } from "../../../shared/autocomplete-models"
 import { finalizeChatSuggestion, buildChatPrefix } from "./chat-autocomplete-utils"
 
@@ -101,9 +101,10 @@ export class ChatTextAreaAutocomplete {
     let response = ""
 
     try {
-      await generateFim(this.connection, entry.id, prefix, suffix, (chunk) => {
-        response += chunk
-      })
+      const fim = entry.local
+        ? generateLocalFim(entry.id, prefix, suffix, (chunk) => { response += chunk })
+        : generateFim(this.connection, entry.id, prefix, suffix, (chunk) => { response += chunk })
+      await fim
 
       const latencyMs = Date.now() - startTime
 

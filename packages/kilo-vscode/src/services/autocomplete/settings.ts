@@ -44,6 +44,7 @@ export function validAutocompleteSetting(key: string, value: unknown) {
     return AUTOCOMPLETE_MODELS.some((m) => m.id === value)
   }
 
+  if (key === "localBaseUrl") return typeof value === "string"
   if (key === "enableAutoTrigger") return typeof value === "boolean"
   if (key === "enableSmartInlineTaskKeybinding") return typeof value === "boolean"
   if (key === "enableChatAutocomplete") return typeof value === "boolean"

@@ -7,8 +7,9 @@ import {
 } from "../types"
 import { getProcessedSnippets } from "./getProcessedSnippets"
 import { getTemplateForModel } from "../continuedev/core/autocomplete/templating/AutocompleteTemplate"
-import { generateFim } from "../fim"
+import { generateFim, generateLocalFim } from "../fim"
 import type { KiloConnectionService } from "../../cli-backend"
+import { getAutocompleteModel } from "../../../shared/autocomplete-models"
 
 export type { FimAutocompletePrompt, FimCompletionResult }
 
@@ -84,7 +85,10 @@ export class FimPromptBuilder {
       response += text
     }
     logtime("prep fim")
-    const usageInfo = await generateFim(connection, modelId, formattedPrefix, prunedSuffix, onChunk, signal)
+    const modelDef = getAutocompleteModel(modelId)
+    const usageInfo = modelDef.local
+      ? await generateLocalFim(modelId, formattedPrefix, prunedSuffix, onChunk, signal)
+      : await generateFim(connection, modelId, formattedPrefix, prunedSuffix, onChunk, signal)
     logtime("fim network")
     console.log("[FIM] response:", response)
 

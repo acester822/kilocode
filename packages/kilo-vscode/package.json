@@ -753,13 +753,20 @@
           "type": "string",
           "enum": [
             "mistralai/codestral-2508",
-            "inception/mercury-edit"
+            "inception/mercury-edit",
+            "local/qwen2.5-coder-1.5b"
           ],
           "enumDescriptions": [
             "Codestral by Mistral AI (default)",
-            "Mercury Edit by Inception"
+            "Mercury Edit by Inception",
+            "Qwen2.5-Coder-1.5B via local llama-swap — requires kilo-code.new.autocomplete.localBaseUrl"
           ],
           "description": "Model to use for inline autocomplete suggestions"
+        },
+        "kilo-code.new.autocomplete.localBaseUrl": {
+          "type": "string",
+          "default": "",
+          "description": "Base URL for a local OpenAI-compatible FIM endpoint (e.g. llama-swap). Example: http://localhost:8080. Required when using the local/qwen2.5-coder-1.5b autocomplete model."
         },
         "kilo-code.new.autocomplete.enableAutoTrigger": {
           "type": "boolean",

@@ -2,6 +2,7 @@ import * as path from "path"
 import * as vscode from "vscode"
 import { buildPreviewPath, getPreviewCommand, getPreviewDir, parseImage, trimEntries } from "./image-preview"
 import { isAbsolutePath } from "./path-utils"
+import { readFtr10Vars, buildFtr10StyleBlock, buildFtr10InlineVars, watchFtr10Vars } from "./ftr10-theme"
 import type {
   KiloClient,
   Session,
@@ -237,6 +238,9 @@ export class KiloProvider implements vscode.WebviewViewProvider, TelemetryProper
   private viewStateDisposable: vscode.Disposable | null = null
   private visibilityDisposable: vscode.Disposable | null = null
   private autoApproveBridge: ReturnType<typeof createAutoApproveBridge> | null = null
+  /** Current FTR10 Architect theme vars — updated whenever ~/.ftr10/vars.json changes. */
+  private ftr10Vars: Record<string, string> = readFtr10Vars()
+  private stopFtr10Watcher: (() => void) | null = null
 
   private ignoreController: FileIgnoreController | null = null
   private ignoreControllerDir: string | null = null
@@ -606,6 +610,12 @@ export class KiloProvider implements vscode.WebviewViewProvider, TelemetryProper
     this.speechToTextDisposable = watchSpeechToTextConfig(this)
     this.telemetryStateDisposable?.dispose()
     this.telemetryStateDisposable = watchTelemetryState((msg) => this.postMessage(msg))
+    // Start FTR10 theme watcher — push updated vars to the webview on change
+    this.stopFtr10Watcher?.()
+    this.stopFtr10Watcher = watchFtr10Vars((vars) => {
+      this.ftr10Vars = vars
+      this.postMessage({ type: "ftr10VarsUpdate", vars: buildFtr10InlineVars(vars) })
+    })
     this.webviewMessageDisposable = webview.onDidReceiveMessage(async (message) => {
       const intercepted = await interceptMessage(message, {
         workspaceDir: (sid) => this.getWorkspaceDirectory(sid ?? this.currentSession?.id),
@@ -3471,6 +3481,8 @@ export class KiloProvider implements vscode.WebviewViewProvider, TelemetryProper
       title: "Kilo Code",
       port: this.connectionService.getServerInfo()?.port,
       extraStyles: `.container { height: 100%; display: flex; flex-direction: column; height: 100vh; border-right: 1px solid var(--border-weak-base); }`,
+      ftr10StyleBlock: buildFtr10StyleBlock(this.ftr10Vars),
+      ftr10VarsJson: JSON.stringify(buildFtr10InlineVars(this.ftr10Vars)),
     })
   }
 
@@ -3562,6 +3574,7 @@ export class KiloProvider implements vscode.WebviewViewProvider, TelemetryProper
     this.autocompleteConfigDisposable?.dispose()
     this.speechToTextDisposable?.dispose()
     this.telemetryStateDisposable?.dispose()
+    this.stopFtr10Watcher?.()
     this.autoApproveBridge?.dispose()
     this.streams.dispose()
     this.isWebviewReady = false

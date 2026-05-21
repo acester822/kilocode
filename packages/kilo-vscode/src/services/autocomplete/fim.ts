@@ -1,6 +1,7 @@
 import { ResponseMetaData } from "./types"
 import type { KiloConnectionService } from "../cli-backend"
 import { getAutocompleteModel } from "../../shared/autocomplete-models"
+import * as vscode from "vscode"
 
 /**
  * Generate a FIM (Fill-in-the-Middle) completion via the CLI backend.
@@ -74,4 +75,93 @@ export async function generateFim(
  */
 export function hasValidCredentials(connectionService: KiloConnectionService): boolean {
   return connectionService.getConnectionState() === "connected"
+}
+
+/**
+ * Generate a FIM completion by calling a local OpenAI-compatible endpoint
+ * (e.g. llama-swap / llama.cpp). Uses Qwen2.5-Coder FIM special tokens.
+ *
+ * The base URL is read from `kilo-code.new.autocomplete.localBaseUrl`
+ * (e.g. "http://localhost:8080").
+ */
+export async function generateLocalFim(
+  modelId: string,
+  prefix: string,
+  suffix: string,
+  onChunk: (text: string) => void,
+  signal?: AbortSignal,
+): Promise<ResponseMetaData> {
+  const config = vscode.workspace.getConfiguration("kilo-code.new.autocomplete")
+  const baseUrl = (config.get<string>("localBaseUrl") ?? "").replace(/\/$/, "")
+  if (!baseUrl) {
+    throw new Error(
+      "kilo-code.new.autocomplete.localBaseUrl is not set. " +
+        "Add your llama-swap URL (e.g. http://localhost:8080) in VS Code settings.",
+    )
+  }
+
+  const model = getAutocompleteModel(modelId)
+  // Qwen2.5-Coder FIM prompt format
+  const prompt = `<|fim_prefix|>${prefix}<|fim_suffix|>${suffix}<|fim_middle|>`
+
+  const response = await fetch(`${baseUrl}/v1/completions`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    signal,
+    body: JSON.stringify({
+      model: "Qwen2.5-Coder-1.5B",
+      prompt,
+      max_tokens: 128,
+      temperature: model.temperature,
+      stream: true,
+      stop: ["<|endoftext|>", "<|fim_pad|>", "<|repo_name|>", "\n\n"],
+    }),
+  })
+
+  if (!response.ok) {
+    throw new Error(`Local FIM request failed: ${response.status} ${response.statusText}`)
+  }
+
+  const reader = response.body?.getReader()
+  if (!reader) throw new Error("No response body from local FIM endpoint")
+
+  const decoder = new TextDecoder()
+  let inputTokens = 0
+  let outputTokens = 0
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read()
+      if (done) break
+
+      const chunk = decoder.decode(value, { stream: true })
+      for (const line of chunk.split("\n")) {
+        const trimmed = line.trim()
+        if (!trimmed.startsWith("data:")) continue
+        const data = trimmed.slice(5).trim()
+        if (data === "[DONE]") break
+        try {
+          const parsed = JSON.parse(data)
+          const text = parsed.choices?.[0]?.text ?? ""
+          if (text) onChunk(text)
+          if (parsed.usage) {
+            inputTokens = parsed.usage.prompt_tokens ?? 0
+            outputTokens = parsed.usage.completion_tokens ?? 0
+          }
+        } catch {
+          // Malformed SSE line — skip
+        }
+      }
+    }
+  } finally {
+    reader.releaseLock()
+  }
+
+  return {
+    cost: 0,
+    inputTokens,
+    outputTokens,
+    cacheWriteTokens: 0,
+    cacheReadTokens: 0,
+  }
 }

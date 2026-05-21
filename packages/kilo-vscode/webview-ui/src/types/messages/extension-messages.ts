@@ -920,6 +920,12 @@ export interface RemoteStatusMessage {
   connected: boolean
 }
 
+/** Sent by the extension when ~/.ftr10/vars.json changes — carries updated FTR10 CSS vars. */
+export interface Ftr10VarsUpdateMessage {
+  type: "ftr10VarsUpdate"
+  vars: Record<string, string>
+}
+
 export type ExtensionMessage =
   | ReadyMessage
   | FontSizeChangedMessage
@@ -1061,3 +1067,4 @@ export type ExtensionMessage =
   | ExtensionDataReadyMessage
   | TelemetryStateMessage
   | RemoteStatusMessage
+  | Ftr10VarsUpdateMessage

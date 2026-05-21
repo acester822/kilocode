@@ -40,6 +40,10 @@ export function buildWebviewHtml(
     title: string
     port?: number
     extraStyles?: string
+    /** Optional CSS :root block injected from ~/.ftr10/vars.json (FTR10 theme vars). */
+    ftr10StyleBlock?: string
+    /** FTR10 vars as JSON — applied as inline styles to beat VS Code's dynamic --vscode-* injection. */
+    ftr10VarsJson?: string
   },
 ): string {
   const nonce = getNonce()
@@ -70,18 +74,48 @@ export function buildWebviewHtml(
       overflow: hidden;
     }
     body {
-      background-color: var(--vscode-sideBar-background, var(--vscode-editor-background));
+      background-color: transparent;
       color: var(--vscode-foreground);
-      font-family: var(--vscode-font-family);
+      font-family: var(--ftr10-body-font, var(--vscode-font-family));
+    }
+    /* Beat VS Code's body.vscode-dark specificity so FTR10 theme applies */
+    body.vscode-dark,
+    body.vscode-light,
+    body.vscode-high-contrast {
+      background-color: transparent;
+      font-family: var(--ftr10-body-font, var(--vscode-font-family));
     }
     #root {
       height: 100%;
     }${opts.extraStyles ? `\n    ${opts.extraStyles}` : ""}
-  </style>
+  </style>${opts.ftr10StyleBlock ? `\n  <style id="ftr10-vars">\n  ${opts.ftr10StyleBlock}\n  </style>` : ""}
 </head>
 <body>
   <div id="root"></div>
-  <script nonce="${nonce}">window.ICONS_BASE_URI = "${opts.iconsBaseUri}";</script>
+  <script nonce="${nonce}">window.ICONS_BASE_URI = "${opts.iconsBaseUri}";</script>${opts.ftr10VarsJson ? `
+  <script nonce="${nonce}">
+  (function(){
+    var V=${opts.ftr10VarsJson};
+    window.__FTR10_VARS__=V;
+    function apply(vars){
+      var r=document.documentElement;
+      for(var k in vars){r.style.setProperty(k,vars[k]);}
+    }
+    apply(V);
+    // Re-apply after all DOM mutations in <head> settle (VS Code --vscode-* injection,
+    // kilo-ui ThemeProvider writing oc-theme, SolidJS reactive cascades, etc.)
+    // Debounced so multiple rapid mutations collapse into a single trailing re-apply.
+    var t=null;
+    function schedule(){
+      if(t)clearTimeout(t);
+      t=setTimeout(function(){t=null;apply(window.__FTR10_VARS__||{});},50);
+    }
+    new MutationObserver(schedule).observe(document.head,{childList:true,subtree:true,characterData:true});
+    // Also watch for data-theme / data-color-scheme attribute changes on <html>
+    // which ThemeProvider sets after writing the style content.
+    new MutationObserver(schedule).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme','data-color-scheme']});
+  })();
+  </script>` : ""}
   <script nonce="${nonce}" src="${opts.scriptUri}"></script>
 </body>
 </html>`
