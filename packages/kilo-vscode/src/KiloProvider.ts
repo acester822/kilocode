@@ -51,6 +51,7 @@ import { GitStatsPoller, type LocalStats } from "./agent-manager/GitStatsPoller"
 import { diffSummary as localDiffSummary } from "./agent-manager/local-diff"
 import { getWorkspaceRoot } from "./review-utils"
 import { createMarketplaceRemover, removeAgent, removeMcp } from "./kilo-provider/remove-config-item"
+import type { MarketplaceRemoveContext } from "./services/marketplace/actions"
 import type { RemoteStatusService } from "./services/RemoteStatusService"
 import { resolveProjectDirectory } from "./project-directory"
 import { getBusySessionCount, seedSessionStatuses } from "./session-status"
@@ -382,6 +383,10 @@ export class KiloProvider implements vscode.WebviewViewProvider, TelemetryProper
       status: (sessionID: string) => this.sessionStatusMap.get(sessionID),
       directory: (sessionID: string) => this.getWorkspaceDirectory(sessionID),
     }
+  }
+
+  private get marketplaceRemove(): MarketplaceRemoveContext["remove"] {
+    return createMarketplaceRemover()
   }
 
   private get removeConfigItemCtx() {

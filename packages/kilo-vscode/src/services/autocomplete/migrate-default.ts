@@ -29,7 +29,7 @@ export async function migrateDefaultAutocompleteSettings(context: vscode.Extensi
   const model = config.inspect<string>("model")?.globalValue
 
   const matchesDefault =
-    provider === DEFAULT_AUTOCOMPLETE_MODEL.providerID && model === DEFAULT_AUTOCOMPLETE_MODEL.modelID
+    provider === DEFAULT_AUTOCOMPLETE_MODEL.provider && model === DEFAULT_AUTOCOMPLETE_MODEL.id
 
   if (matchesDefault) {
     await config.update("provider", undefined, vscode.ConfigurationTarget.Global)

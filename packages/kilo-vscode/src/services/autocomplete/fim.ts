@@ -1,6 +1,6 @@
 import { ResponseMetaData } from "./types"
 import type { KiloConnectionService } from "../cli-backend"
-import { getAutocompleteModel } from "../../shared/autocomplete-models"
+import { getAutocompleteModel, getAutocompleteModelById, FIM_MAX_TOKENS } from "../../shared/autocomplete-models"
 import * as vscode from "vscode"
 
 /**
@@ -28,14 +28,14 @@ export async function generateFim(
   // ends the stream. Without this, errors never reach ErrorBackoff.
   let sseError: Error | undefined
 
-  console.info(`[FIM] request provider=${info.providerID} model=${info.requestModel} url=/kilo/fim`)
+  console.info(`[FIM] request provider=${info.provider} model=${info.id} url=/kilo/fim`)
 
   const { stream } = await client.kilo.fim(
     {
       prefix,
       suffix,
-      provider: info.providerID,
-      model: info.modelID,
+      provider: info.provider,
+      model: info.id,
       maxTokens: FIM_MAX_TOKENS,
       temperature: info.temperature,
     },

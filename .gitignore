@@ -71,3 +71,5 @@ packages/opencode/.artifacts/
 
 # Built VS Code extension packages
 *.vsix
+packages/opencode/src/provider/models-snapshot.d.ts
+packages/opencode/src/provider/models-snapshot.js

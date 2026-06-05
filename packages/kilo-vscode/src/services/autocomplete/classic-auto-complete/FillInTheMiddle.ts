@@ -70,12 +70,12 @@ export class FimPromptBuilder {
     const onChunk = (text: string) => {
       response += text
     }
-    logtime("prep fim")
+    console.time("prep fim")
     const modelDef = getAutocompleteModel(modelId)
     const usageInfo = modelDef.local
       ? await generateLocalFim(modelId, formattedPrefix, prunedSuffix, onChunk, signal)
       : await generateFim(connection, modelId, formattedPrefix, prunedSuffix, onChunk, signal)
-    logtime("fim network")
+    console.timeEnd("prep fim")
     console.log("[FIM] response:", response)
 
     const fillInAtCursorSuggestion = processSuggestion(response)

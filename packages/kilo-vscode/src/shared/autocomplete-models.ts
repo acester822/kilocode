@@ -55,3 +55,19 @@ export function getAutocompleteModel(id: string): AutocompleteModelDef {
   }
   return DEFAULT_AUTOCOMPLETE_MODEL
 }
+
+export function getAutocompleteModelById(id: string): AutocompleteModelDef {
+  return getAutocompleteModel(id)
+}
+
+export function validAutocompleteModel(model: unknown): boolean {
+  if (typeof model !== "string") return false
+  return models.some((m) => m.id === model)
+}
+
+export function validAutocompleteProvider(provider: unknown): boolean {
+  if (typeof provider !== "string") return false
+  return models.some((m) => m.provider === provider)
+}
+
+export const FIM_MAX_TOKENS = 1024

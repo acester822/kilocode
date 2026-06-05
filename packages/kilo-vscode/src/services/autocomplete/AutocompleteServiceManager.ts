@@ -27,13 +27,15 @@ export interface AutocompleteServiceSettings {
 
 function readSettings(): AutocompleteServiceSettings {
   const config = vscode.workspace.getConfiguration(CONFIG_SECTION)
-  const info = getAutocompleteModel(config.get<string>("provider"), config.get<string>("model"))
+  const provider = config.get<string>("provider")
+  const model = config.get<string>("model")
+  const info = getAutocompleteModel(model ?? provider ?? DEFAULT_AUTOCOMPLETE_MODEL.id)
   return {
     enableAutoTrigger: config.get<boolean>("enableAutoTrigger") ?? true,
     enableSmartInlineTaskKeybinding: config.get<boolean>("enableSmartInlineTaskKeybinding") ?? true,
     enableChatAutocomplete: config.get<boolean>("enableChatAutocomplete") ?? true,
-    provider: info.providerID,
-    model: info.modelID,
+    provider: info.provider,
+    model: info.id,
     snoozeUntil: config.get<number>("snoozeUntil"),
   }
 }
@@ -110,8 +112,9 @@ export class AutocompleteServiceManager {
       connectionService,
       suggestionManager: this.nextEditSuggestionManager,
       getModelSelection: () => {
-        const info = getAutocompleteModel(this.settings?.provider, this.settings?.model)
-        return { providerId: info.providerID, modelId: info.modelID }
+        const model = this.settings?.model ?? this.settings?.provider
+        const info = getAutocompleteModel(model ?? DEFAULT_AUTOCOMPLETE_MODEL.id)
+        return { providerId: info.provider, modelId: info.id }
       },
       isFileAllowed: async (fsPath) => {
         const ignore = await this.inlineCompletionProvider.ignoreController
@@ -137,7 +140,7 @@ export class AutocompleteServiceManager {
               : TelemetryEventName.AUTOCOMPLETE_LLM_REQUEST_COMPLETED
         TelemetryProxy.capture(eventName, {
           mode: "next-edit",
-          model: getAutocompleteModel(this.settings?.provider, this.settings?.model).id,
+          model: getAutocompleteModel(this.settings?.model ?? this.settings?.provider ?? DEFAULT_AUTOCOMPLETE_MODEL.id).id,
           latencyMs: event.latencyMs,
           inputTokens: event.inputTokens,
           outputTokens: event.outputTokens,
@@ -177,7 +180,7 @@ export class AutocompleteServiceManager {
   public async load() {
     this.settings = readSettings()
 
-    this.inlineCompletionProvider.setModel(getAutocompleteModel(this.settings.provider, this.settings.model).id)
+    this.inlineCompletionProvider.setModel(getAutocompleteModel(this.settings.model ?? this.settings.provider ?? DEFAULT_AUTOCOMPLETE_MODEL.id).id)
 
     await this.updateGlobalContext()
     this.updateStatusBar()
@@ -192,8 +195,8 @@ export class AutocompleteServiceManager {
    */
   private async ensureInlineCompletionProviderRegistration() {
     const shouldBeRegistered = (this.settings?.enableAutoTrigger ?? false) && !this.isSnoozed()
-    const info = getAutocompleteModel(this.settings?.provider, this.settings?.model)
-    const desiredKind: "classic" | "next-edit" = info.kind === "edit" ? "next-edit" : "classic"
+    const info = getAutocompleteModel(this.settings?.model ?? this.settings?.provider ?? DEFAULT_AUTOCOMPLETE_MODEL.id)
+    const desiredKind: "classic" | "next-edit" = info.id.includes("mercury-edit") ? "next-edit" : "classic"
 
     // Mode change while still enabled requires a swap: tear down the old
     // registration so the new provider takes over.
@@ -397,12 +400,12 @@ export class AutocompleteServiceManager {
   }
 
   private getCurrentModelName(): string {
-    const info = getAutocompleteModel(this.settings?.provider, this.settings?.model)
+    const info = getAutocompleteModel(this.settings?.model ?? this.settings?.provider ?? DEFAULT_AUTOCOMPLETE_MODEL.id)
     return info.label
   }
 
   private getCurrentProviderName(): string {
-    const info = getAutocompleteModel(this.settings?.provider, this.settings?.model)
+    const info = getAutocompleteModel(this.settings?.model ?? this.settings?.provider ?? DEFAULT_AUTOCOMPLETE_MODEL.id)
     return info.provider
   }
 

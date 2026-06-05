@@ -9,13 +9,13 @@ import type { EnrichedModel } from "../../context/provider"
  */
 export function getAutocompleteSelection(provider?: string, modelID?: string) {
   if (!provider && !modelID) return null
-  const model = getAutocompleteModel(provider, modelID)
-  return { providerID: model.providerID, modelID: model.modelID }
+  const model = getAutocompleteModel(modelID ?? provider ?? "")
+  return { providerID: model.provider, modelID: model.id }
 }
 
 export const AUTOCOMPLETE_SELECTOR_MODELS: EnrichedModel[] = AUTOCOMPLETE_MODELS.map((m) => ({
-  id: m.modelID,
+  id: m.id,
   name: m.label,
-  providerID: m.providerID,
+  providerID: m.provider,
   providerName: m.provider,
 }))
