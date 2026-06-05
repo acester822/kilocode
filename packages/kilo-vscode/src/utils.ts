@@ -37,6 +37,7 @@ export function buildWebviewHtml(
     scriptUri: vscode.Uri
     styleUri: vscode.Uri
     iconsBaseUri: vscode.Uri
+    workerUri: vscode.Uri
     title: string
     port?: number
     extraStyles?: string
