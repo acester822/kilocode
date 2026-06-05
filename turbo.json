@@ -41,6 +41,7 @@
       "outputs": ["build/distributions/**"]
     },
     "@kilocode/kilo-jetbrains#typecheck": {
+      "dependsOn": [],
       "outputs": []
     },
     "@kilocode/kilo-jetbrains#test:ci": {
